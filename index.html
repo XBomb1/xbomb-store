@@ -7,7 +7,16 @@
     <style>
         /* ===== ОБЩИЕ СТИЛИ ===== */
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',system-ui,sans-serif; }
-        body { background:#0b0e11; color:#e8edf0; min-height:100vh; }
+        body {
+            background: #0b0e11;
+            color: #e8edf0;
+            min-height: 100vh;
+            /* Фон с логотипом Xbox (полупрозрачный) */
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" opacity="0.06"><circle cx="50" cy="50" r="45" fill="none" stroke="%231ed760" stroke-width="2"/><text x="50" y="58" font-size="40" font-family="Arial" fill="%231ed760" text-anchor="middle">X</text></svg>');
+            background-repeat: repeat;
+            background-size: 120px 120px;
+            background-attachment: fixed;
+        }
         a { color:#1ed760; text-decoration:none; }
 
         /* ===== ШАПКА ===== */
@@ -128,8 +137,8 @@
             flex-direction:column;
         }
         .game-card:hover {
-            transform:translateY(-5px);
-            box-shadow:0 10px 35px rgba(30,215,96,0.1);
+            transform:translateY(-5px) scale(1.02);
+            box-shadow:0 15px 40px rgba(30,215,96,0.2);
             border-color:#1ed760;
         }
         .game-card .img-wrap {
@@ -145,9 +154,9 @@
             width:100%;
             height:100%;
             object-fit:cover;
-            transition:0.3s;
+            transition:0.4s;
         }
-        .game-card:hover .img-wrap img { transform:scale(1.03); }
+        .game-card:hover .img-wrap img { transform:scale(1.08); }
         .game-card .badges {
             position:absolute;
             top:8px;
@@ -592,14 +601,19 @@
 <div class="container" id="mainContainer">
     <!-- Секция ИГРЫ -->
     <div id="gamesSection">
+        <!-- Блок предзаказов на главной (дублируется, но для удобства) -->
+        <div id="preordersBlock">
+            <h2 class="section-title">⏳ <span>Предзаказы</span> — игры, которые скоро выйдут</h2>
+            <div class="games-grid" id="preordersGridMain"></div>
+        </div>
         <h2 class="section-title">🔥 <span>Популярные</span> игры</h2>
         <div class="games-grid" id="gamesGrid"></div>
         <div class="pagination" id="pagination"></div>
     </div>
 
-    <!-- Секция ПРЕДЗАКАЗЫ -->
+    <!-- Секция ПРЕДЗАКАЗЫ (полный список) -->
     <div id="preordersSection" style="display:none;">
-        <h2 class="section-title">⏳ <span>Предзаказы</span> — игры, которые скоро выйдут</h2>
+        <h2 class="section-title">⏳ <span>Все предзаказы</span></h2>
         <div class="games-grid" id="preordersGrid"></div>
     </div>
 
@@ -673,9 +687,9 @@
     // 1. КОНФИГУРАЦИЯ (ЗАМЕНИТЕ НА СВОИ ДАННЫЕ)
     // ------------------------------------------------------------
     const CONFIG = {
-        RAWG_API_KEY: '3214b65de1154f818e27f5adcc0b8170',
-        BOT_TOKEN: '8824508663:AAHp0cLIbE6KtsIf91hi2r-4Ml9H6Lfk1Co',
-        CHAT_ID: '7892808964',
+        RAWG_API_KEY: 'YOUR_RAWG_API_KEY',
+        BOT_TOKEN: 'YOUR_BOT_TOKEN',
+        CHAT_ID: 'YOUR_CHAT_ID',
     };
 
     // ------------------------------------------------------------
@@ -746,6 +760,7 @@
     // ------------------------------------------------------------
     const gamesGrid = document.getElementById('gamesGrid');
     const preordersGrid = document.getElementById('preordersGrid');
+    const preordersGridMain = document.getElementById('preordersGridMain');
     const searchInput = document.getElementById('searchInput');
     const searchBtn = document.getElementById('searchBtn');
     const sortSelect = document.getElementById('sortSelect');
@@ -823,6 +838,7 @@
             </div>
         `;
         preordersGrid.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><p>Загрузка предзаказов...</p></div>`;
+        preordersGridMain.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><p>Загрузка...</p></div>`;
 
         let allLoaded = [];
         const maxGames = 300;
@@ -871,7 +887,6 @@
                     description_ru: getRussianDescription(game),
                     isNew: isNewGame(game.released),
                     isPreorder: isPreorderGame(game.released),
-                    // Сохраняем ссылку на трейлер (если есть)
                     trailer: game.clip ? game.clip.clip : null,
                 };
             });
@@ -927,6 +942,7 @@
         `;
         pagination.innerHTML = '';
         preordersGrid.innerHTML = '';
+        preordersGridMain.innerHTML = '';
     }
 
     // ------------------------------------------------------------
@@ -1002,16 +1018,25 @@
     }
 
     // ------------------------------------------------------------
-    // 9. ОТРИСОВКА ПРЕДЗАКАЗОВ
+    // 9. ОТРИСОВКА ПРЕДЗАКАЗОВ (в двух местах)
     // ------------------------------------------------------------
     function renderPreorders() {
         const preorders = allGames.filter(g => g.isPreorder === true);
+        // Основная сетка предзаказов (на вкладке)
         if (preorders.length === 0) {
             preordersGrid.innerHTML =
                 `<div style="grid-column:1/-1; text-align:center; padding:40px; color:#6a8a8a;">На данный момент предзаказов нет.</div>`;
-            return;
+        } else {
+            preordersGrid.innerHTML = preorders.map(game => renderCard(game)).join('');
         }
-        preordersGrid.innerHTML = preorders.map(game => renderCard(game)).join('');
+        // Блок предзаказов на главной (только первые 6)
+        const mainPreorders = preorders.slice(0, 6);
+        if (mainPreorders.length === 0) {
+            preordersGridMain.innerHTML =
+                `<div style="grid-column:1/-1; text-align:center; padding:20px; color:#6a8a8a;">Нет предзаказов.</div>`;
+        } else {
+            preordersGridMain.innerHTML = mainPreorders.map(game => renderCard(game)).join('');
+        }
     }
 
     // ------------------------------------------------------------
@@ -1068,7 +1093,7 @@
     });
 
     // ------------------------------------------------------------
-    // 12. МОДАЛЬНОЕ ОКНО (с трейлером)
+    // 12. МОДАЛЬНОЕ ОКНО (с трейлером и без ограничений на имя)
     // ------------------------------------------------------------
     async function openModal(gameId) {
         try {
@@ -1125,7 +1150,6 @@
             if (discount > 15) badgeHtml +=
                 `<span class="badge badge-discount" style="display:inline-block;">-${discount}%</span>`;
 
-            // Кнопка трейлера
             let trailerButton = '';
             if (trailer) {
                 trailerButton = `<button class="trailer-btn" onclick="openTrailer('${trailer}')">▶ Смотреть трейлер</button>`;
@@ -1163,7 +1187,7 @@
                     <p style="color:#6a8a8a;font-size:14px;margin-bottom:10px;">Оставьте контакты — мы свяжемся с вами для оформления</p>
                     <form id="purchaseForm" onsubmit="sendOrder(event, ${game.id})">
                         <div class="form-group">
-                            <input type="text" id="userName" placeholder="Имя (одно слово, до 7 букв)" required pattern="[A-Za-zА-Яа-яЁё]{1,7}" maxlength="7" title="Введите одно слово до 7 букв (только буквы)">
+                            <input type="text" id="userName" placeholder="Ваше имя" required>
                             <input type="tel" id="userPhone" placeholder="Номер телефона" required>
                         </div>
                         <button type="submit" class="btn-buy" id="buyBtn">📩 Отправить заявку</button>
@@ -1195,10 +1219,9 @@
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
     // ------------------------------------------------------------
-    // 13. ТРЕЙЛЕР (открывается в отдельной модалке)
+    // 13. ТРЕЙЛЕР
     // ------------------------------------------------------------
     function openTrailer(url) {
-        // Если ссылка содержит youtube.com или youtu.be, формируем embed
         let embedUrl = url;
         if (url.includes('youtube.com/watch?v=')) {
             const videoId = url.split('v=')[1]?.split('&')[0];
@@ -1206,8 +1229,6 @@
         } else if (url.includes('youtu.be/')) {
             const videoId = url.split('youtu.be/')[1]?.split('?')[0];
             if (videoId) embedUrl = `https://www.youtube.com/embed/${videoId}`;
-        } else if (url.includes('vimeo.com/')) {
-            // Для vimeo просто используем ссылку, но обычно работает
         }
         trailerIframe.src = embedUrl;
         trailerOverlay.classList.add('active');
@@ -1224,7 +1245,7 @@
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeTrailer(); });
 
     // ------------------------------------------------------------
-    // 14. LIGHTBOX ДЛЯ СКРИНШОТОВ
+    // 14. LIGHTBOX
     // ------------------------------------------------------------
     function openLightbox(event, src) {
         event.stopPropagation();
@@ -1240,7 +1261,7 @@
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLightbox(); });
 
     // ------------------------------------------------------------
-    // 15. ОТПРАВКА ЗАКАЗА (с проверкой имени)
+    // 15. ОТПРАВКА ЗАКАЗА (без ограничений на имя)
     // ------------------------------------------------------------
     async function sendOrder(event, gameId) {
         event.preventDefault();
@@ -1249,27 +1270,14 @@
         const statusDiv = document.getElementById('formStatus');
         const buyBtn = document.getElementById('buyBtn');
 
-        const rawName = nameInput.value.trim();
-        const nameParts = rawName.split(/\s+/).filter(p => p.length > 0);
-
-        if (nameParts.length !== 1) {
-            statusDiv.className = 'form-status error';
-            statusDiv.textContent = '⚠️ Имя должно состоять из одного слова (без пробелов)';
-            return;
-        }
-        const name = nameParts[0];
-        if (name.length > 7) {
-            statusDiv.className = 'form-status error';
-            statusDiv.textContent = '⚠️ Имя не должно превышать 7 букв';
-            return;
-        }
-        if (!/^[A-Za-zА-Яа-яЁё]+$/.test(name)) {
-            statusDiv.className = 'form-status error';
-            statusDiv.textContent = '⚠️ Имя должно содержать только буквы';
-            return;
-        }
-
+        const name = nameInput.value.trim();
         const phone = phoneInput.value.trim();
+
+        if (!name) {
+            statusDiv.className = 'form-status error';
+            statusDiv.textContent = '⚠️ Введите ваше имя';
+            return;
+        }
         if (!phone) {
             statusDiv.className = 'form-status error';
             statusDiv.textContent = '⚠️ Введите номер телефона';
@@ -1356,13 +1364,12 @@
                 gamesSection.style.display = 'none';
                 preordersSection.style.display = 'block';
                 subscriptionsSection.style.display = 'none';
-                renderPreorders(); // обновить, если надо
+                renderPreorders();
             } else if (target === 'subscriptions') {
                 gamesSection.style.display = 'none';
                 preordersSection.style.display = 'none';
                 subscriptionsSection.style.display = 'block';
             }
-            // Прокрутка к верху контейнера
             document.querySelector('.container').scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
     });
@@ -1375,7 +1382,6 @@
     sortSelect.addEventListener('change', applyFilters);
     genreFilter.addEventListener('change', applyFilters);
 
-    // Сброс фильтров
     function resetFilters() {
         searchInput.value = '';
         sortSelect.value = 'popular';
@@ -1387,7 +1393,7 @@
     // 19. ЗАПУСК
     // ------------------------------------------------------------
     loadGames();
-    console.log('🎮 XBomb — магазин Xbox и PC (с предзаказами, трейлерами, вкладками)');
+    console.log('🎮 XBomb — сайт обновлён: имя без ограничений, фон с Xbox, предзаказы на главной');
 </script>
 </body>
 </html>
