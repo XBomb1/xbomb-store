@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>XBomb — Игры для Xbox и PC</title>
+    <!-- ===== ФАВИКОН (встроенный SVG, зелёный XB) ===== -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%230b0e11' rx='20'/%3E%3Ctext x='50' y='68' font-size='60' font-family='Arial' fill='%231ed760' text-anchor='middle' font-weight='bold'%3EXB%3C/text%3E%3C/svg%3E" type="image/svg+xml" />
     <style>
         /* ===== ОБЩИЕ СТИЛИ ===== */
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',system-ui,sans-serif; }
@@ -18,6 +20,11 @@
             background-attachment: fixed;
         }
         a { color:#1ed760; text-decoration:none; }
+
+        /* ===== Скрываем всплывающие подсказки при наведении на игры ===== */
+        .game-card, .game-card * { pointer-events: auto; }
+        .game-card img { pointer-events: none; } /* чтобы не было тултипа на картинке */
+        .game-card { cursor: pointer; }
 
         /* ===== ШАПКА ===== */
         header {
@@ -135,6 +142,7 @@
             border:1px solid #1a2629;
             display:flex;
             flex-direction:column;
+            position:relative;
         }
         .game-card:hover {
             transform:translateY(-5px) scale(1.02);
@@ -155,6 +163,7 @@
             height:100%;
             object-fit:cover;
             transition:0.4s;
+            pointer-events:none; /* отключаем тултип на картинке */
         }
         .game-card:hover .img-wrap img { transform:scale(1.08); }
         .game-card .badges {
@@ -164,6 +173,7 @@
             display:flex;
             flex-direction:column;
             gap:4px;
+            pointer-events:none;
         }
         .game-card .badge {
             font-size:9px;
@@ -177,6 +187,23 @@
         .badge-discount { background:#ff6b6b; color:#fff; }
         .badge-new { background:#1ed760; color:#0b0e11; }
         .badge-preorder { background:#ff9f43; color:#0b0e11; }
+
+        /* Таймер обратного отсчёта на карточке */
+        .game-card .timer {
+            position:absolute;
+            bottom:10px;
+            left:10px;
+            background:rgba(0,0,0,0.8);
+            color:#1ed760;
+            font-size:12px;
+            font-weight:700;
+            padding:4px 10px;
+            border-radius:20px;
+            border:1px solid #1ed760;
+            backdrop-filter:blur(4px);
+            pointer-events:none;
+        }
+
         .game-card .info {
             padding:12px 14px 14px;
             flex:1;
@@ -569,6 +596,7 @@
 <div class="nav-tabs" id="navTabs">
     <a class="active" data-target="games">🎮 Игры</a>
     <a data-target="preorders">⏳ Предзаказы</a>
+    <a data-target="upcoming">🕒 Скоро выйдут</a>
     <a data-target="subscriptions">🎁 Подписки</a>
 </div>
 
@@ -601,7 +629,7 @@
 <div class="container" id="mainContainer">
     <!-- Секция ИГРЫ -->
     <div id="gamesSection">
-        <!-- Блок предзаказов на главной (дублируется, но для удобства) -->
+        <!-- Блок предзаказов на главной (первые 6) -->
         <div id="preordersBlock">
             <h2 class="section-title">⏳ <span>Предзаказы</span> — игры, которые скоро выйдут</h2>
             <div class="games-grid" id="preordersGridMain"></div>
@@ -615,6 +643,12 @@
     <div id="preordersSection" style="display:none;">
         <h2 class="section-title">⏳ <span>Все предзаказы</span></h2>
         <div class="games-grid" id="preordersGrid"></div>
+    </div>
+
+    <!-- Секция СКОРО ВЫЙДУТ (с таймером) -->
+    <div id="upcomingSection" style="display:none;">
+        <h2 class="section-title">🕒 <span>Скоро выйдут</span> — таймер до релиза</h2>
+        <div class="games-grid" id="upcomingGrid"></div>
     </div>
 
     <!-- Секция ПОДПИСКИ -->
@@ -687,9 +721,9 @@
     // 1. КОНФИГУРАЦИЯ (ЗАМЕНИТЕ НА СВОИ ДАННЫЕ)
     // ------------------------------------------------------------
     const CONFIG = {
-        RAWG_API_KEY: 'YOUR_RAWG_API_KEY',
-        BOT_TOKEN: 'YOUR_BOT_TOKEN',
-        CHAT_ID: 'YOUR_CHAT_ID',
+        RAWG_API_KEY: '3214b65de1154f818e27f5adcc0b8170',
+        BOT_TOKEN: '8824508663:AAHp0cLIbE6KtsIf91hi2r-4Ml9H6Lfk1Co',
+        CHAT_ID: '7892808964',
     };
 
     // ------------------------------------------------------------
@@ -761,6 +795,7 @@
     const gamesGrid = document.getElementById('gamesGrid');
     const preordersGrid = document.getElementById('preordersGrid');
     const preordersGridMain = document.getElementById('preordersGridMain');
+    const upcomingGrid = document.getElementById('upcomingGrid');
     const searchInput = document.getElementById('searchInput');
     const searchBtn = document.getElementById('searchBtn');
     const sortSelect = document.getElementById('sortSelect');
@@ -780,15 +815,13 @@
     const navTabs = document.querySelectorAll('#navTabs a');
     const gamesSection = document.getElementById('gamesSection');
     const preordersSection = document.getElementById('preordersSection');
+    const upcomingSection = document.getElementById('upcomingSection');
     const subscriptionsSection = document.getElementById('subscriptionsSection');
 
     let allGames = [];
     let filteredGames = [];
     let currentPage = 1;
     const pageSize = 24;
-
-    // Для навигации по скриншотам
-    let currentScreenshots = [];
 
     // ------------------------------------------------------------
     // 6. ГЕНЕРАЦИЯ ЦЕН (можно заменить на реальные)
@@ -823,6 +856,7 @@
                 console.log(`✅ Загружено из кеша: ${allGames.length} игр`);
                 applyFilters();
                 renderPreorders();
+                renderUpcoming();
                 return;
             } catch (e) { /* ignore */ }
         }
@@ -839,6 +873,7 @@
         `;
         preordersGrid.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><p>Загрузка предзаказов...</p></div>`;
         preordersGridMain.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><p>Загрузка...</p></div>`;
+        upcomingGrid.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><p>Загрузка...</p></div>`;
 
         let allLoaded = [];
         const maxGames = 300;
@@ -908,6 +943,7 @@
 
             applyFilters();
             renderPreorders();
+            renderUpcoming();
 
         } catch (error) {
             console.error('Ошибка:', error);
@@ -943,6 +979,7 @@
         pagination.innerHTML = '';
         preordersGrid.innerHTML = '';
         preordersGridMain.innerHTML = '';
+        upcomingGrid.innerHTML = '';
     }
 
     // ------------------------------------------------------------
@@ -1022,7 +1059,6 @@
     // ------------------------------------------------------------
     function renderPreorders() {
         const preorders = allGames.filter(g => g.isPreorder === true);
-        // Основная сетка предзаказов (на вкладке)
         if (preorders.length === 0) {
             preordersGrid.innerHTML =
                 `<div style="grid-column:1/-1; text-align:center; padding:40px; color:#6a8a8a;">На данный момент предзаказов нет.</div>`;
@@ -1040,7 +1076,117 @@
     }
 
     // ------------------------------------------------------------
-    // 10. КАРТОЧКА
+    // 10. ОТРИСОВКА ИГР "СКОРО ВЫЙДУТ" (с таймером)
+    // ------------------------------------------------------------
+    function renderUpcoming() {
+        const now = new Date();
+        // Игры, дата релиза которых в будущем (ближайшие 120 дней) и которые ещё не вышли
+        const upcoming = allGames.filter(g => {
+            if (!g.released) return false;
+            const releaseDate = new Date(g.released);
+            const diffDays = (releaseDate - now) / (1000 * 60 * 60 * 24);
+            return diffDays > 0 && diffDays <= 120;
+        }).sort((a, b) => new Date(a.released) - new Date(b.released));
+
+        if (upcoming.length === 0) {
+            upcomingGrid.innerHTML =
+                `<div style="grid-column:1/-1; text-align:center; padding:40px; color:#6a8a8a;">На данный момент нет игр, которые скоро выйдут.</div>`;
+        } else {
+            upcomingGrid.innerHTML = upcoming.map(game => renderCardWithTimer(game)).join('');
+        }
+    }
+
+    // ------------------------------------------------------------
+    // 11. КАРТОЧКА С ТАЙМЕРОМ
+    // ------------------------------------------------------------
+    function renderCardWithTimer(game) {
+        const cover = game.background_image || 'https://via.placeholder.com/300x400/0b0e11/2a3a3e?text=No+Image';
+        const year = game.released ? new Date(game.released).getFullYear() : '—';
+        const rating = game.metacritic ? `⭐ ${game.metacritic}` : '';
+        const genreNames = game.genres_ru.slice(0, 2).map(g => g.name_ru).join(', ') || '—';
+
+        let badges = `<span class="badge badge-xbox">Xbox</span>`;
+        if (game.isPreorder) badges += `<span class="badge badge-preorder">Предзаказ</span>`;
+        if (game.isNew) badges += `<span class="badge badge-new">Новинка</span>`;
+        if (game.discount > 15) badges += `<span class="badge badge-discount">-${game.discount}%</span>`;
+
+        const priceConv = convertCurrency(game.price);
+        const oldConv = convertCurrency(game.oldPrice);
+        const symbol = CURRENCY_SYMBOLS[currentCurrency];
+
+        // Таймер будет обновляться через JavaScript отдельно
+        return `
+            <div class="game-card" onclick="openModal(${game.id})" data-release="${game.released}">
+                <div class="img-wrap">
+                    <img src="${cover}" alt="${game.name}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x400/0b0e11/2a3a3e?text=Error'">
+                    <div class="badges">${badges}</div>
+                    <div class="timer" id="timer-${game.id}">--</div>
+                </div>
+                <div class="info">
+                    <h3>${game.name}</h3>
+                    <div class="meta"><span>${year}</span><span>${genreNames}</span></div>
+                    ${rating ? `<div class="rating">${rating}</div>` : ''}
+                    <div class="price-wrap">
+                        <div class="price">
+                            ${game.discount > 0 ? `<span class="old">${oldConv.toFixed(2)} ${symbol}</span>` : ''}
+                            ${priceConv.toFixed(2)} ${symbol}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // ------------------------------------------------------------
+    // 12. КОНВЕРТАЦИЯ ВАЛЮТ
+    // ------------------------------------------------------------
+    function convertCurrency(priceBYN) {
+        const rate = CURRENCIES[currentCurrency] || 1;
+        return priceBYN * rate;
+    }
+
+    currencySelect.addEventListener('change', function() {
+        currentCurrency = this.value;
+        renderPage();
+        renderPreorders();
+        renderUpcoming();
+    });
+
+    // ------------------------------------------------------------
+    // 13. ОБНОВЛЕНИЕ ТАЙМЕРОВ (запускается каждую секунду)
+    // ------------------------------------------------------------
+    function updateTimers() {
+        const now = new Date();
+        document.querySelectorAll('.game-card[data-release]').forEach(card => {
+            const releaseStr = card.dataset.release;
+            if (!releaseStr) return;
+            const releaseDate = new Date(releaseStr);
+            const diffMs = releaseDate - now;
+            if (diffMs <= 0) {
+                const timer = card.querySelector('.timer');
+                if (timer) timer.textContent = 'Вышла!';
+                return;
+            }
+            const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+            const timer = card.querySelector('.timer');
+            if (timer) {
+                if (days > 0) {
+                    timer.textContent = `${days}д ${hours}ч ${minutes}м`;
+                } else {
+                    timer.textContent = `${hours}ч ${minutes}м ${seconds}с`;
+                }
+            }
+        });
+    }
+
+    // Запускаем обновление таймеров каждую секунду
+    setInterval(updateTimers, 1000);
+
+    // ------------------------------------------------------------
+    // 14. КАРТОЧКА (без таймера, для обычных игр)
     // ------------------------------------------------------------
     function renderCard(game) {
         const cover = game.background_image || 'https://via.placeholder.com/300x400/0b0e11/2a3a3e?text=No+Image';
@@ -1079,21 +1225,7 @@
     }
 
     // ------------------------------------------------------------
-    // 11. КОНВЕРТАЦИЯ ВАЛЮТ
-    // ------------------------------------------------------------
-    function convertCurrency(priceBYN) {
-        const rate = CURRENCIES[currentCurrency] || 1;
-        return priceBYN * rate;
-    }
-
-    currencySelect.addEventListener('change', function() {
-        currentCurrency = this.value;
-        renderPage();
-        renderPreorders();
-    });
-
-    // ------------------------------------------------------------
-    // 12. МОДАЛЬНОЕ ОКНО (с трейлером и без ограничений на имя)
+    // 15. МОДАЛЬНОЕ ОКНО
     // ------------------------------------------------------------
     async function openModal(gameId) {
         try {
@@ -1112,7 +1244,7 @@
                 const scrData = await scrResp.json();
                 screenshots = scrData.results || [];
             }
-            currentScreenshots = screenshots.slice(0, 12);
+            const currentScreenshots = screenshots.slice(0, 12);
 
             const localGame = allGames.find(g => g.id === gameId);
             const price = localGame ? localGame.price : generatePrice();
@@ -1202,7 +1334,6 @@
         }
     }
 
-    // Листание скриншотов
     function scrollScreenshots(direction) {
         const container = document.getElementById('screenshotsContainer');
         if (!container) return;
@@ -1219,7 +1350,7 @@
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
     // ------------------------------------------------------------
-    // 13. ТРЕЙЛЕР
+    // 16. ТРЕЙЛЕР
     // ------------------------------------------------------------
     function openTrailer(url) {
         let embedUrl = url;
@@ -1245,7 +1376,7 @@
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeTrailer(); });
 
     // ------------------------------------------------------------
-    // 14. LIGHTBOX
+    // 17. LIGHTBOX
     // ------------------------------------------------------------
     function openLightbox(event, src) {
         event.stopPropagation();
@@ -1261,7 +1392,7 @@
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLightbox(); });
 
     // ------------------------------------------------------------
-    // 15. ОТПРАВКА ЗАКАЗА (без ограничений на имя)
+    // 18. ОТПРАВКА ЗАКАЗА (без ограничений)
     // ------------------------------------------------------------
     async function sendOrder(event, gameId) {
         event.preventDefault();
@@ -1328,7 +1459,7 @@
     }
 
     // ------------------------------------------------------------
-    // 16. ПОДПИСКИ
+    // 19. ПОДПИСКИ
     // ------------------------------------------------------------
     function buySubscription(name, price) {
         const message =
@@ -1349,7 +1480,7 @@
     }
 
     // ------------------------------------------------------------
-    // 17. ВКЛАДКИ НАВИГАЦИИ
+    // 20. ВКЛАДКИ НАВИГАЦИИ
     // ------------------------------------------------------------
     navTabs.forEach(tab => {
         tab.addEventListener('click', function() {
@@ -1359,15 +1490,24 @@
             if (target === 'games') {
                 gamesSection.style.display = 'block';
                 preordersSection.style.display = 'none';
+                upcomingSection.style.display = 'none';
                 subscriptionsSection.style.display = 'none';
             } else if (target === 'preorders') {
                 gamesSection.style.display = 'none';
                 preordersSection.style.display = 'block';
+                upcomingSection.style.display = 'none';
                 subscriptionsSection.style.display = 'none';
                 renderPreorders();
+            } else if (target === 'upcoming') {
+                gamesSection.style.display = 'none';
+                preordersSection.style.display = 'none';
+                upcomingSection.style.display = 'block';
+                subscriptionsSection.style.display = 'none';
+                renderUpcoming();
             } else if (target === 'subscriptions') {
                 gamesSection.style.display = 'none';
                 preordersSection.style.display = 'none';
+                upcomingSection.style.display = 'none';
                 subscriptionsSection.style.display = 'block';
             }
             document.querySelector('.container').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1375,7 +1515,7 @@
     });
 
     // ------------------------------------------------------------
-    // 18. СОБЫТИЯ ФИЛЬТРОВ
+    // 21. СОБЫТИЯ ФИЛЬТРОВ
     // ------------------------------------------------------------
     searchBtn.addEventListener('click', applyFilters);
     searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') applyFilters(); });
@@ -1390,10 +1530,10 @@
     }
 
     // ------------------------------------------------------------
-    // 19. ЗАПУСК
+    // 22. ЗАПУСК
     // ------------------------------------------------------------
     loadGames();
-    console.log('🎮 XBomb — сайт обновлён: имя без ограничений, фон с Xbox, предзаказы на главной');
+    console.log('🎮 XBomb — добавлены: фавикон XB, игры «Скоро выйдут» с таймером, скрыты тултипы');
 </script>
 </body>
 </html>
