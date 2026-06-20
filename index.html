@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>XBomb — Игры для Xbox и PC</title>
-    <!-- ===== ФАВИКОН (встроенный SVG, зелёный XB) ===== -->
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%230b0e11' rx='20'/%3E%3Ctext x='50' y='68' font-size='60' font-family='Arial' fill='%231ed760' text-anchor='middle' font-weight='bold'%3EXB%3C/text%3E%3C/svg%3E" type="image/svg+xml" />
     <style>
         /* ===== ОБЩИЕ СТИЛИ ===== */
@@ -13,17 +12,14 @@
             background: #0b0e11;
             color: #e8edf0;
             min-height: 100vh;
-            /* Фон с логотипом Xbox (полупрозрачный) */
             background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" opacity="0.06"><circle cx="50" cy="50" r="45" fill="none" stroke="%231ed760" stroke-width="2"/><text x="50" y="58" font-size="40" font-family="Arial" fill="%231ed760" text-anchor="middle">X</text></svg>');
             background-repeat: repeat;
             background-size: 120px 120px;
             background-attachment: fixed;
         }
         a { color:#1ed760; text-decoration:none; }
-
-        /* ===== Скрываем всплывающие подсказки при наведении на игры ===== */
         .game-card, .game-card * { pointer-events: auto; }
-        .game-card img { pointer-events: none; } /* чтобы не было тултипа на картинке */
+        .game-card img { pointer-events: none; }
         .game-card { cursor: pointer; }
 
         /* ===== ШАПКА ===== */
@@ -163,7 +159,7 @@
             height:100%;
             object-fit:cover;
             transition:0.4s;
-            pointer-events:none; /* отключаем тултип на картинке */
+            pointer-events:none;
         }
         .game-card:hover .img-wrap img { transform:scale(1.08); }
         .game-card .badges {
@@ -187,8 +183,6 @@
         .badge-discount { background:#ff6b6b; color:#fff; }
         .badge-new { background:#1ed760; color:#0b0e11; }
         .badge-preorder { background:#ff9f43; color:#0b0e11; }
-
-        /* Таймер обратного отсчёта на карточке */
         .game-card .timer {
             position:absolute;
             bottom:10px;
@@ -203,7 +197,6 @@
             backdrop-filter:blur(4px);
             pointer-events:none;
         }
-
         .game-card .info {
             padding:12px 14px 14px;
             flex:1;
@@ -441,6 +434,77 @@
             border-radius:12px;
         }
 
+        /* ===== LIGHTBOX ДЛЯ СКРИНШОТОВ (с навигацией) ===== */
+        .lightbox {
+            display:none;
+            position:fixed;
+            top:0; left:0;
+            width:100%; height:100%;
+            background:rgba(0,0,0,0.92);
+            z-index:2000;
+            justify-content:center;
+            align-items:center;
+            flex-direction:column;
+            padding:20px;
+        }
+        .lightbox.active { display:flex; }
+        .lightbox .lightbox-content {
+            position:relative;
+            max-width:90%;
+            max-height:80vh;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+        }
+        .lightbox .lightbox-content img {
+            max-width:90vw;
+            max-height:80vh;
+            object-fit:contain;
+            border-radius:12px;
+            box-shadow:0 0 50px rgba(0,0,0,0.8);
+        }
+        .lightbox .nav-btn {
+            position:absolute;
+            top:50%;
+            transform:translateY(-50%);
+            background:rgba(0,0,0,0.6);
+            color:#fff;
+            border:2px solid #1ed760;
+            border-radius:50%;
+            width:50px;
+            height:50px;
+            font-size:28px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            cursor:pointer;
+            transition:0.2s;
+            z-index:10;
+            user-select:none;
+        }
+        .lightbox .nav-btn:hover { background:#1ed760; color:#0b0e11; }
+        .lightbox .nav-btn.left { left:10px; }
+        .lightbox .nav-btn.right { right:10px; }
+        .lightbox .close-lightbox {
+            position:absolute;
+            top:10px;
+            right:20px;
+            background:rgba(0,0,0,0.6);
+            border:none;
+            color:#fff;
+            font-size:32px;
+            cursor:pointer;
+            z-index:10;
+            transition:0.2s;
+            border-radius:50%;
+            width:50px;
+            height:50px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+        }
+        .lightbox .close-lightbox:hover { background:#ff6b6b; transform:rotate(90deg); }
+
         /* ===== ПОДПИСКИ ===== */
         .subscriptions-section {
             margin:40px 0 30px;
@@ -512,6 +576,34 @@
         }
         .sub-card .sub-btn:hover { background:#17b84a; transform:scale(1.02); }
 
+        /* ===== СТИЛИ ДЛЯ ПОЛЕЙ ВВОДА (тёмная тематика) ===== */
+        .form-group input {
+            background: #141e20;
+            border: 1px solid #2a3a3e;
+            border-radius:10px;
+            padding:14px 18px;
+            color: #e8edf0;
+            font-size:16px;
+            outline:none;
+            transition:0.3s;
+            width:100%;
+        }
+        .form-group input:focus {
+            border-color: #1ed760;
+            box-shadow: 0 0 20px rgba(30,215,96,0.15);
+            background: #1a2629;
+        }
+        .form-group input::placeholder {
+            color: #6a8a8a;
+            opacity:0.7;
+        }
+        .form-group label {
+            color: #b0c8c8;
+            font-size:14px;
+            margin-bottom:4px;
+            display:block;
+        }
+
         /* ===== ПОДВАЛ ===== */
         footer {
             text-align:center;
@@ -557,12 +649,14 @@
             .modal-screenshots img { height:100px; }
             .subscriptions-section { padding:20px 16px; }
             .sub-grid { grid-template-columns:1fr 1fr; }
+            .lightbox .nav-btn { width:36px; height:36px; font-size:20px; }
         }
         @media (max-width:480px) {
             .games-grid { grid-template-columns:repeat(auto-fill, minmax(130px,1fr)); gap:10px; }
             .game-card .info h3 { font-size:12px; }
             .game-card .info .price { font-size:14px; }
             .sub-grid { grid-template-columns:1fr; }
+            .lightbox .nav-btn { width:30px; height:30px; font-size:16px; }
         }
         ::-webkit-scrollbar { width:5px; height:5px; }
         ::-webkit-scrollbar-track { background:#0b0e11; }
@@ -629,7 +723,6 @@
 <div class="container" id="mainContainer">
     <!-- Секция ИГРЫ -->
     <div id="gamesSection">
-        <!-- Блок предзаказов на главной (первые 6) -->
         <div id="preordersBlock">
             <h2 class="section-title">⏳ <span>Предзаказы</span> — игры, которые скоро выйдут</h2>
             <div class="games-grid" id="preordersGridMain"></div>
@@ -700,9 +793,14 @@
     </div>
 </div>
 
-<!-- ===== LIGHTBOX ДЛЯ СКРИНШОТОВ ===== -->
-<div class="lightbox" id="lightbox" onclick="closeLightbox()">
-    <img id="lightboxImg" src="" alt="Скриншот">
+<!-- ===== LIGHTBOX ДЛЯ СКРИНШОТОВ (с навигацией) ===== -->
+<div class="lightbox" id="lightbox">
+    <div class="lightbox-content">
+        <button class="close-lightbox" onclick="closeLightbox()">✕</button>
+        <button class="nav-btn left" onclick="changeScreenshot(-1)">◀</button>
+        <img id="lightboxImg" src="" alt="Скриншот">
+        <button class="nav-btn right" onclick="changeScreenshot(1)">▶</button>
+    </div>
 </div>
 
 <!-- ===== ПОДВАЛ ===== -->
@@ -823,6 +921,10 @@
     let currentPage = 1;
     const pageSize = 24;
 
+    // Для галереи скриншотов в лайтбоксе
+    let lightboxImages = [];
+    let currentLightboxIndex = 0;
+
     // ------------------------------------------------------------
     // 6. ГЕНЕРАЦИЯ ЦЕН (можно заменить на реальные)
     // ------------------------------------------------------------
@@ -838,7 +940,7 @@
     }
 
     // ------------------------------------------------------------
-    // 7. ЗАГРУЗКА С КЕШИРОВАНИЕМ
+    // 7. ЗАГРУЗКА С КЕШИРОВАНИЕМ (увеличено до 600 игр)
     // ------------------------------------------------------------
     async function loadGames(searchQuery = '') {
         if (searchQuery.trim()) {
@@ -876,7 +978,7 @@
         upcomingGrid.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><p>Загрузка...</p></div>`;
 
         let allLoaded = [];
-        const maxGames = 300;
+        const maxGames = 600; // ← Увеличили до 600
         const perPage = 40;
         const maxPages = Math.ceil(maxGames / perPage);
         let page = 1;
@@ -897,7 +999,7 @@
                 if (progress) progress.textContent = `Загружено ${allLoaded.length} игр...`;
 
                 page++;
-                await new Promise(r => setTimeout(r, 250));
+                await new Promise(r => setTimeout(r, 300)); // небольшая задержка для снижения нагрузки на API
             }
 
             if (allLoaded.length === 0) {
@@ -1055,7 +1157,7 @@
     }
 
     // ------------------------------------------------------------
-    // 9. ОТРИСОВКА ПРЕДЗАКАЗОВ (в двух местах)
+    // 9. ОТРИСОВКА ПРЕДЗАКАЗОВ
     // ------------------------------------------------------------
     function renderPreorders() {
         const preorders = allGames.filter(g => g.isPreorder === true);
@@ -1065,7 +1167,6 @@
         } else {
             preordersGrid.innerHTML = preorders.map(game => renderCard(game)).join('');
         }
-        // Блок предзаказов на главной (только первые 6)
         const mainPreorders = preorders.slice(0, 6);
         if (mainPreorders.length === 0) {
             preordersGridMain.innerHTML =
@@ -1076,11 +1177,10 @@
     }
 
     // ------------------------------------------------------------
-    // 10. ОТРИСОВКА ИГР "СКОРО ВЫЙДУТ" (с таймером)
+    // 10. ОТРИСОВКА "СКОРО ВЫЙДУТ"
     // ------------------------------------------------------------
     function renderUpcoming() {
         const now = new Date();
-        // Игры, дата релиза которых в будущем (ближайшие 120 дней) и которые ещё не вышли
         const upcoming = allGames.filter(g => {
             if (!g.released) return false;
             const releaseDate = new Date(g.released);
@@ -1090,7 +1190,7 @@
 
         if (upcoming.length === 0) {
             upcomingGrid.innerHTML =
-                `<div style="grid-column:1/-1; text-align:center; padding:40px; color:#6a8a8a;">На данный момент нет игр, которые скоро выйдут.</div>`;
+                `<div style="grid-column:1/-1; text-align:center; padding:40px; color:#6a8a8a;">Нет игр, которые скоро выйдут.</div>`;
         } else {
             upcomingGrid.innerHTML = upcoming.map(game => renderCardWithTimer(game)).join('');
         }
@@ -1114,7 +1214,6 @@
         const oldConv = convertCurrency(game.oldPrice);
         const symbol = CURRENCY_SYMBOLS[currentCurrency];
 
-        // Таймер будет обновляться через JavaScript отдельно
         return `
             <div class="game-card" onclick="openModal(${game.id})" data-release="${game.released}">
                 <div class="img-wrap">
@@ -1153,7 +1252,7 @@
     });
 
     // ------------------------------------------------------------
-    // 13. ОБНОВЛЕНИЕ ТАЙМЕРОВ (запускается каждую секунду)
+    // 13. ОБНОВЛЕНИЕ ТАЙМЕРОВ
     // ------------------------------------------------------------
     function updateTimers() {
         const now = new Date();
@@ -1182,11 +1281,10 @@
         });
     }
 
-    // Запускаем обновление таймеров каждую секунду
     setInterval(updateTimers, 1000);
 
     // ------------------------------------------------------------
-    // 14. КАРТОЧКА (без таймера, для обычных игр)
+    // 14. КАРТОЧКА (без таймера)
     // ------------------------------------------------------------
     function renderCard(game) {
         const cover = game.background_image || 'https://via.placeholder.com/300x400/0b0e11/2a3a3e?text=No+Image';
@@ -1264,11 +1362,15 @@
             let scrHtml = '';
             if (currentScreenshots.length > 0) {
                 scrHtml = currentScreenshots.map((s) =>
-                    `<img src="${s.image}" alt="Скриншот" loading="lazy" onclick="openLightbox(event, '${s.image}')" style="cursor:pointer;">`
+                    `<img src="${s.image}" alt="Скриншот" loading="lazy" onclick="openLightboxFromModal(event, ${JSON.stringify(currentScreenshots.map(s => s.image))}, ${currentScreenshots.indexOf(s)})" style="cursor:pointer;">`
                 ).join('');
             } else {
                 scrHtml = `<p style="color:#4a5a5a;font-size:14px;">🖼️ Скриншоты отсутствуют</p>`;
             }
+
+            // Сохраняем скриншоты для лайтбокса
+            lightboxImages = currentScreenshots.map(s => s.image);
+            currentLightboxIndex = 0;
 
             const priceConv = convertCurrency(price);
             const oldConv = convertCurrency(oldPrice);
@@ -1319,8 +1421,10 @@
                     <p style="color:#6a8a8a;font-size:14px;margin-bottom:10px;">Оставьте контакты — мы свяжемся с вами для оформления</p>
                     <form id="purchaseForm" onsubmit="sendOrder(event, ${game.id})">
                         <div class="form-group">
-                            <input type="text" id="userName" placeholder="Ваше имя" required>
-                            <input type="tel" id="userPhone" placeholder="Номер телефона" required>
+                            <label for="userName">Ваше имя</label>
+                            <input type="text" id="userName" placeholder="Например: Александр" required>
+                            <label for="userPhone">Номер телефона</label>
+                            <input type="tel" id="userPhone" placeholder="+375 (29) 123-45-67" required>
                         </div>
                         <button type="submit" class="btn-buy" id="buyBtn">📩 Отправить заявку</button>
                         <div class="form-status" id="formStatus"></div>
@@ -1376,23 +1480,53 @@
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeTrailer(); });
 
     // ------------------------------------------------------------
-    // 17. LIGHTBOX
+    // 17. LIGHTBOX С НАВИГАЦИЕЙ
     // ------------------------------------------------------------
-    function openLightbox(event, src) {
+    function openLightboxFromModal(event, images, index) {
         event.stopPropagation();
-        lightboxImg.src = src;
+        lightboxImages = images;
+        currentLightboxIndex = index;
+        openLightbox();
+    }
+
+    function openLightbox() {
+        if (lightboxImages.length === 0) return;
+        lightboxImg.src = lightboxImages[currentLightboxIndex];
         lightbox.classList.add('active');
         document.body.style.overflow = 'hidden';
+        updateLightboxButtons();
     }
 
     function closeLightbox() {
         lightbox.classList.remove('active');
         document.body.style.overflow = '';
     }
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLightbox(); });
+
+    function changeScreenshot(direction) {
+        const newIndex = currentLightboxIndex + direction;
+        if (newIndex < 0 || newIndex >= lightboxImages.length) return;
+        currentLightboxIndex = newIndex;
+        lightboxImg.src = lightboxImages[currentLightboxIndex];
+        updateLightboxButtons();
+    }
+
+    function updateLightboxButtons() {
+        const leftBtn = document.querySelector('.lightbox .nav-btn.left');
+        const rightBtn = document.querySelector('.lightbox .nav-btn.right');
+        if (leftBtn) leftBtn.style.display = currentLightboxIndex === 0 ? 'none' : 'flex';
+        if (rightBtn) rightBtn.style.display = currentLightboxIndex === lightboxImages.length - 1 ? 'none' : 'flex';
+    }
+
+    // Обработка клавиш стрелок в лайтбоксе
+    document.addEventListener('keydown', (e) => {
+        if (!lightbox.classList.contains('active')) return;
+        if (e.key === 'ArrowLeft') changeScreenshot(-1);
+        if (e.key === 'ArrowRight') changeScreenshot(1);
+        if (e.key === 'Escape') closeLightbox();
+    });
 
     // ------------------------------------------------------------
-    // 18. ОТПРАВКА ЗАКАЗА (без ограничений)
+    // 18. ОТПРАВКА ЗАКАЗА
     // ------------------------------------------------------------
     async function sendOrder(event, gameId) {
         event.preventDefault();
@@ -1533,7 +1667,7 @@
     // 22. ЗАПУСК
     // ------------------------------------------------------------
     loadGames();
-    console.log('🎮 XBomb — добавлены: фавикон XB, игры «Скоро выйдут» с таймером, скрыты тултипы');
+    console.log('🎮 XBomb обновлён: поля ввода стилизованы, лайтбокс с навигацией, +600 игр');
 </script>
 </body>
 </html>
